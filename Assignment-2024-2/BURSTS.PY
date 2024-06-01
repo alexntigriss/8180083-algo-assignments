@@ -1,6 +1,7 @@
 import sys
 import math
 import argparse
+# Function to read time points from a file
 
 def main():
     parser = argparse.ArgumentParser()
