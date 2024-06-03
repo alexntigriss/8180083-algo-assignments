@@ -40,6 +40,40 @@ def run_viterbi(time_points, scale=3, penalty=0.5):
 
     return final_states, lambdas, costs
 
+# Bellman-Ford algorithm implementation
+def run_bellman_ford(time_points, scale=3, penalty=0.5):
+    num_intervals = len(time_points) - 1
+    total_time = time_points[-1]
+    gaps = [time_points[i + 1] - time_points[i] for i in range(num_intervals)]
+    lambdas, num_states = calculate_lambdas(total_time, num_intervals, scale, min(gaps))
+
+    vertices = [(t, j) for t in range(num_intervals + 1) for j in range(num_states)]
+    edges = []
+
+    for t in range(num_intervals):
+        for i in range(num_states):
+            for j in range(num_states):
+                cost = (penalty * (j - i) * math.log(num_intervals) if j > i else 0) - math.log(lambdas[j]) + lambdas[j] * gaps[t]
+                edges.append(((t, i), (t + 1, j), cost))
+
+    distances = {v: float('inf') for v in vertices}
+    predecessors = {v: None for v in vertices}
+    distances[(0, 0)] = 0
+
+    for _ in range(len(vertices) - 1):
+        for u, v, cost in edges:
+            if distances[u] + cost < distances[v]:
+                distances[v] = distances[u] + cost
+                predecessors[v] = u
+
+    final_states = [0] * (num_intervals + 1)
+    final_states[-1] = min(range(num_states), key=lambda j: distances[(num_intervals, j)])
+    current_vertex = (num_intervals, final_states[-1])
+    for t in range(num_intervals, 0, -1):
+        final_states[t - 1] = predecessors[current_vertex][1]
+        current_vertex = predecessors[current_vertex]
+
+    return final_states, lambdas, distances
 
 # Function to print state transitions
 def print_state_transitions(time_points, states):
@@ -69,7 +103,9 @@ def main():
         print("Final cost matrix (Viterbi):")
         print_state_transitions(time_points, states)
     elif args.algorithm == "trellis":
-        print("Not implemented yet")
+        states, lambdas, distances = run_bellman_ford(time_points, args.scale, args.penalty)
+        print("Final distances (Bellman-Ford):")
+        print_state_transitions(time_points, states)
 
 if __name__ == "__main__":
     main()
